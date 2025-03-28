@@ -1,8 +1,39 @@
 import 'dart:io';
+import 'dart:convert';
 import 'book_class.dart';
 
 class Library {
   List<Book> books = [];
+  final String dataFilePath = 'books.json';
+
+  Library() {
+    loadBooks();
+  }
+
+  void loadBooks() {
+    try {
+      final file = File(dataFilePath);
+      if (file.existsSync()) {
+        String content = file.readAsStringSync();
+        List<dynamic> jsonData = jsonDecode(content);
+        books = jsonData.map((item) => Book.fromJson(item)).toList();
+        print("Books loaded successfully from JSON!");
+      }
+    } catch (e) {
+      print("Error loading books: $e");
+    }
+  }
+
+  void saveBooks() {
+    try {
+      final file = File(dataFilePath);
+      List<dynamic> jsonData = books.map((book) => book.toJson()).toList();
+      file.writeAsStringSync(jsonEncode(jsonData));
+      print("Books saved successfully to JSON!");
+    } catch (e) {
+      print("Error saving books: $e");
+    }
+  }
 
   void addBook() {
     stdout.write("Enter Book Title: ");
@@ -18,6 +49,7 @@ class Library {
     }
 
     books.add(Book(title, author, genre));
+    saveBooks();
     print("Book added successfully!");
   }
 
@@ -36,79 +68,55 @@ class Library {
     stdout.write("Enter the title of the book to delete: ");
     String? bookTitle = stdin.readLineSync();
 
-    bool isDeleted = false;
-
-    for (int i = 0; i < books.length; i++) {
-      if (books[i].title == bookTitle) {
-        books.removeAt(i);
-        isDeleted = true;
-        break;
-      }
-    }
-
-    if (isDeleted) {
-      print("Book '$bookTitle' has been deleted.");
-    } else {
-      print("Book '$bookTitle' not found!");
-    }
-  }
-
-  void assignBook() {
-    stdout.write("Enter Book Title to Assign: ");
-    String? bookTitle = stdin.readLineSync();
-
-    bool found = false;
-
-    for (var book in books) {
-      if (book.title == bookTitle) {
-        found = true;
-        if (book.isAvalaible) {
-          book.isAvalaible = false;
-          print("Book '$bookTitle' assigned successfully!");
-        } else {
-          print("Book '$bookTitle' is already assigned!");
-        }
-        break;
-      }
-    }
-
-    if (!found) {
-      print("Book '$bookTitle' not found!");
-    }
+    books.removeWhere((book) => book.title == bookTitle);
+    saveBooks();
+    print("Book '$bookTitle' deleted successfully!");
   }
 
   void updateBook() {
     stdout.write("Enter the title of the book to update: ");
     String? bookTitle = stdin.readLineSync();
 
-    bool isUpdated = false;
-
+    bool found = false;
     for (var book in books) {
       if (book.title == bookTitle) {
-        isUpdated = true;
-
-        print("Book Found! Enter new details:");
+        found = true;
         stdout.write("Enter New Author: ");
-        String? newAuthor = stdin.readLineSync();
-
+        book.author = stdin.readLineSync()!;
         stdout.write("Enter New Genre: ");
-        String? newGenre = stdin.readLineSync();
-
-        book.author = newAuthor!;
-        book.genre = newGenre!;
-
+        book.genre = stdin.readLineSync()!;
+        saveBooks();
         print("Book details updated successfully!");
         break;
       }
     }
 
-    if (!isUpdated) {
-      print("Book '$bookTitle' not found!");
+    if (!found) print("Book '$bookTitle' not found!");
+  }
+
+  void assignBook() {
+    stdout.write("Enter Book Title to Assign: ");
+    String? bookTitle = stdin.readLineSync();
+
+    for (var book in books) {
+      if (book.title == bookTitle) {
+        if (book.isAvalaible) {
+          book.isAvalaible = false;
+          saveBooks();
+          print("Book '$bookTitle' assigned successfully!");
+          return;
+        } else {
+          print("Book '$bookTitle' is already assigned!");
+          return;
+        }
+      }
     }
+
+    print("Book '$bookTitle' not found!");
   }
 
   void exit() {
-    print("Exiting the Library System... Bye! ");
+    print("Exiting the Library System... Bye!");
     exitCode = 0;
   }
 }
